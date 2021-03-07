@@ -1,0 +1,120 @@
+function myFunction() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var second = ss.getSheetByName("resultLinkedinProfileScrapper");
+  var rowsCount = second.getLastRow();
+  Logger.log("rowsCount: " + rowsCount);
+  var columnCount = second.getMaxColumns();
+  var dropContactResponse = dropContact(second);
+  var jsonResp = JSON.parse(dropContactResponse);
+
+  var emailColumn = new Array();
+  //Logger.log("Length: " + jsonResp.data.length);
+  for(var i = 0; i< jsonResp.data.length; i++){
+    var emailAddress;
+
+    if(jsonResp.data[i].email !=null){
+      //Logger.log("FirstName: " + jsonResp.data[i].first_name);
+
+      emailAddress = jsonResp.data[i].email[0].email;
+      //Logger.log("Email: " + emailAddress);
+      //Logger.log("EmailColumn: " + emailColumn);
+      
+    } else{
+      emailAddress = "NA";
+    }
+    emailColumn.push(emailAddress);
+    
+      }
+  Logger.log(emailColumn);
+  for(var i =0; i<rowsCount;i++){
+    second.getRange(i+2,2).setValue(emailColumn[i]);
+
+  }
+
+
+
+  //second.insertColumnsBefore(1,2);
+  //TODO: update Email list as retrieved from dropcontact API
+  var emailList = second.getSheetValues(2,2,rowsCount,1);
+Logger.log(emailList);
+  var url = "http://apilayer.net/api/check?access_key=5ab71c3202124af7d6beee1541c9056a&email=";
+
+  for(var email=0; email < rowsCount; email++){
+    if(emailList[0][email] != "NA"){
+      Logger.log("EmailList inside null check: " + emailList[email]);
+      checkUrl = url + emailList[email];
+      var response = UrlFetchApp.fetch(checkUrl);
+      var json = response.getContentText();
+      var data = JSON.parse(json);
+      Logger.log(data);
+      
+      //My validation criteria
+      if(data.mx_found && data.smtp_check && data.score >= 0.5){
+        second.getRange(email+2,1).setValue("Yes");
+      } else{
+        second.getRange(email+2,1).setValue("No");
+      }
+    }
+  }
+  
+}
+
+
+function dropContact(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var second = ss.getSheetByName("resultLinkedinProfileScrapper");
+
+  var fNameList = getByName("firstName",second);
+  var lNameList = getByName("lastName",second);
+  var companyWebsiteList = getByName("companyWebsite",second);
+
+  var APIPayloadObject = {data:[]};
+  var creditLimit = 24
+  for ( i = 0; i < creditLimit; i++){
+   APIPayloadObject.data.push({
+      first_name:   fNameList[i][0],
+      last_name: lNameList[i][0],
+      website: companyWebsiteList[i][0]
+   })
+  }
+  var data = JSON.stringify(APIPayloadObject);
+Logger.log("Payload: " + data);
+var options = {
+  'method' : 'post',
+  'contentType': 'application/json',
+  'headers' : {
+       'X-Access-Token': '9LGIcY8OJXwGNycWaGTEb1qZcdDOFe'
+     },
+  'payload' : data
+};
+
+  var responseJson = UrlFetchApp.fetch('https://api.dropcontact.io/batch', options).getContentText();
+  var response = JSON.parse(responseJson);
+
+var request_id = response.request_id;
+var options = {
+  'method' : 'get',
+  'headers' : {
+       'X-Access-Token': '9LGIcY8OJXwGNycWaGTEb1qZcdDOFe'
+     }
+};
+var urlGet = "https://api.dropcontact.io/batch/" + request_id;
+Logger.log(urlGet);
+do{
+  Utilities.sleep(30000);
+  var responseGetJson = UrlFetchApp.fetch(urlGet, options).getContentText();
+  var responseGet = JSON.parse(responseJson);
+}while(!responseGet.success)
+
+Logger.log(responseGetJson);
+return responseGetJson;
+}
+
+function getByName(colName, second) {
+
+  var data = second.getDataRange().getValues();
+  var col = data[0].indexOf(colName);
+  if (col != -1) {
+    return second.getRange(2,col+1,second.getMaxRows()).getValues();
+  }
+}
