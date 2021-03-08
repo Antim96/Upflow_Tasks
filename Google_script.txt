@@ -32,7 +32,7 @@ function myFunction() {
 
   var emailList = second.getSheetValues(2,2,rowsCount,1);
 Logger.log(emailList);
-  var url = "http://apilayer.net/api/check?access_key=5ab71c3202124af7d6beee1541c9056a&email=";
+  var url = "http://apilayer.net/api/check?access_key=<>&email=";
 
   for(var email=0; email < rowsCount; email++){
     if(emailList[0][email] != "NA"){
@@ -78,7 +78,7 @@ var options = {
   'method' : 'post',
   'contentType': 'application/json',
   'headers' : {
-       'X-Access-Token': '9LGIcY8OJXwGNycWaGTEb1qZcdDOFe'
+       'X-Access-Token': '<>'
      },
   'payload' : data
 };
@@ -90,7 +90,7 @@ var request_id = response.request_id;
 var options = {
   'method' : 'get',
   'headers' : {
-       'X-Access-Token': '9LGIcY8OJXwGNycWaGTEb1qZcdDOFe'
+       'X-Access-Token': '<>'
      }
 };
 var urlGet = "https://api.dropcontact.io/batch/" + request_id;
